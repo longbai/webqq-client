@@ -1,0 +1,36 @@
+#!/usr/bin/env coffee
+
+QQ    = require '..'
+
+Fs       = require 'fs'
+OptParse = require 'optparse'
+
+Switches = [
+    [ "-h", "--help",            "Display the help information" ],
+    [ "-v", "--version",         "Displays the version of webqq-client installed" ]
+]
+
+Options = {}
+
+Parser = new OptParse.OptionParser(Switches)
+Parser.banner = "Usage qqcli [options]"
+
+Parser.on "help", (opt, value) ->
+    console.log Parser.toString()
+    process.exit 0
+
+Parser.on "version", (opt, value) ->
+    Options.version = true
+
+Parser.parse process.argv
+
+unless process.platform is "win32"
+    process.on 'SIGTERM', ->
+        process.exit 0
+
+    qq = QQ.load()
+    if Options.version
+        console.log qq.version
+        process.exit 0
+
+    # qq.run()

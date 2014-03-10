@@ -1,0 +1,42 @@
+{
+  "name": "webqq-client",
+  "version": "0.0.1",
+
+  "author": "bailong",
+
+  "keywords": [
+    "qq",
+    "webqq"
+  ],
+
+  "description": "Webqq client",
+
+  "licenses": [{
+    "type": "MIT",
+    "url": "https://raw.github.com/longbai/webqq-client/master/LICENSE"
+  }],
+
+  "repository" : {
+    "type": "git",
+    "url": "https://github.com/longbai/webqq-client.git"
+  },
+
+  "dependencies": {
+    "coffee-script":      "1.7.1",
+    "optparse":           "1.0.5",
+    "scoped-http-client": "0.9.8",
+    "log":                "1.4.0",
+    "express":            "3.5.0"
+  },
+
+  "engines": {
+    "node": ">= 0.8.x",
+    "npm":  ">= 1.1.x"
+  },
+
+  "main": "./index",
+
+  "bin": {
+    "qqcli": "./bin/qqcli"
+  }
+}
