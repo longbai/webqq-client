@@ -12,6 +12,10 @@ Switches = [
 
 Options = {}
 
+unless process.platform is "win32"
+    process.on 'SIGTERM', ->
+        process.exit 0
+
 Parser = new OptParse.OptionParser(Switches)
 Parser.banner = "Usage qqcli [options]"
 
@@ -24,13 +28,10 @@ Parser.on "version", (opt, value) ->
 
 Parser.parse process.argv
 
-unless process.platform is "win32"
-    process.on 'SIGTERM', ->
-        process.exit 0
+if Options.version
+    console.log qq.version
+    process.exit 0
 
-    qq = QQ.load()
-    if Options.version
-        console.log qq.version
-        process.exit 0
+qq = QQ.load()
 
-    # qq.run()
+qq.run()
