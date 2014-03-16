@@ -165,7 +165,21 @@ class Service
                     @emit 'error', 'online failed'
             )
 
-    # discussionGroupList: ->
+    discussionGroupList: (cb)->
+        params =
+            clientid: @authInfo.clientid
+            psessionid: @authInfo.psessionid
+            vfwebqq: @authInfo.vfwebqq
+            t: new Date().getTime()
+
+        client = HttpClient.create('http://s.web2.qq.com')
+            .path('api/get_group_name_list_mask2')
+            .header('Cookie', @cookie)
+            .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+            .post(QueryString.stringify(params))((err, resp, body) =>
+                console.log body
+                cb body
+        )
 
     # discussionGroupMember: ->
 
@@ -178,6 +192,9 @@ class Service
                 console.log data
             )
             @groupList((data)->
+                console.log data
+            )
+            @discussionGroupList((data)->
                 console.log data
             )
 
