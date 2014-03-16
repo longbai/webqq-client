@@ -82,7 +82,6 @@ class Service
             .header('Referer', 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3')
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(data)((err, resp, body) =>
-                console.log body
                 cb body
         )
 
@@ -97,7 +96,6 @@ class Service
             .header('Cookie', @cookie)
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
-                console.log body
                 cb body
         )
 
@@ -113,7 +111,6 @@ class Service
             .header('Cookie', @cookie)
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
-                console.log body
                 cb body
         )
     parseAuthInfo: =>
@@ -126,7 +123,6 @@ class Service
         verifysession = verifysession.replace /verifysession\=(.*?);.*/ , '$1'
 
         @authInfo.verifysession = verifysession || ''
-        console.log @authInfo
 
     online: ->
         rValue =
@@ -177,7 +173,6 @@ class Service
             .header('Cookie', @cookie)
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
-                console.log body
                 cb body
         )
 
@@ -186,16 +181,19 @@ class Service
     run: ->
         @on 'online', =>
             @friendInfo((data)->
-                console.log data
+                console.log 'friendInfo', data
             )
             @buddyList((data)->
-                console.log data
+                console.log 'buddyList', data
             )
             @groupList((data)->
-                console.log data
+                console.log 'groupList', data
             )
             @discussionGroupList((data)->
-                console.log data
+                console.log 'discussionGroupList', data
+            )
+            @groupMember('', (data)->
+                console.log 'groupMember',data
             )
 
         @online()

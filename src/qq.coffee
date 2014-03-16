@@ -47,11 +47,11 @@ class QQ
         login = new Login(@account, @password)
         login
             .on 'captcha', (data)=>
-                @logger.info 'cap cb', data
+                @logger.info 'captcha callback'
                 @emit 'captcha', data
 
             .on 'success', (cookie)=>
-                @logger.info 'login success', cookie
+                @logger.info 'login success'
                 service = new Service(@account, cookie)
                 service.run()
 

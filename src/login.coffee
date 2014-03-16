@@ -9,7 +9,6 @@ Crypto = require 'crypto'
 
 md5 = (str) ->
     md5sum = Crypto.createHash 'md5'
-    console.log str
     md5sum.update(str.toString()).digest('hex')
 
 getLoginSig = (callback)->
@@ -36,13 +35,10 @@ getLoginSig = (callback)->
                 callback({error:err})
                 return
             g_login_sig = body.match(/var g_login_sig=encodeURIComponent\(\"(.*?)\"\)/)
-            console.log(g_login_sig[1])
-            console.log()
             callback({ok:g_login_sig[1]})
         )
 
 captchaCheck = (account, login_sig, callback)->
-    console.log account
     params =
         appid:1003903
         js_type:0
@@ -70,7 +66,6 @@ captchaCheck = (account, login_sig, callback)->
             if err isnt null
                 callback({error:err})
                 return
-            console.log(body)
             captchaRet = parseResult(body)
             console.log(captchaRet)
             captchaRet.cookie = resp.headers['set-cookie']
@@ -125,7 +120,6 @@ login = (account, password, accountHex, code, cookie, loginSig, callback) ->
             if err isnt null
                 callback({error:err})
                 return
-            console.log(body)
             loginRet = {}
             [loginRet.errorCode, tmp, loginRet.url, tmp, loginRet.msg, loginRet.name] = body.match(/\'(.*?)\'/g).map (i)->
                 last = i.length - 2
@@ -141,21 +135,19 @@ getCookie = (url, cookie, callback)->
             if err isnt null
                 callback({error:err})
                 return
-            console.log('get cookie', body)
             callback({cookie:resp.headers['set-cookie']})
         )
 
 class Login
     constructor:(@account, @password) ->
         @logger = new Log 'info'
-        @logger.info @account,@password
         @cookie = []
         @events = new EventEmitter
     run:->
         @logger.info 'hi'
         @on '_code', (code)=>
             login @account, @password, @accountHex, code, @cookie, @loginSig, (loginRet) =>
-                console.log loginRet
+                console.log 'login result ', loginRet.errorCode
                 @cookie = loginRet.cookie
                 if loginRet.errorCode is '0'
                     getCookie(loginRet.url, @cookie, (cookie) =>

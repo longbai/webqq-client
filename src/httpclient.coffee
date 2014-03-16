@@ -44,7 +44,6 @@ exports.updateCookie = (cookieOld, cookieNew) ->
         replaced = false
         for it in cookieNew
             if it.indexOf(key) is 0
-                console.log 'replaced',key
                 replaced = true
                 break
 
