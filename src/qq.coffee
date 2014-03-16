@@ -4,16 +4,16 @@ Path           = require 'path'
 HttpClient     = require 'scoped-http-client'
 {EventEmitter} = require 'events'
 
-Auth = require './auth'
+Login = require './login'
+Service = require './service'
 
 class QQ
     #
-    # name        - A String of the qq name, defaults to QQ.
-    #
     # Returns nothing.
-    constructor:(@name='QQ', @account, @password) ->
+    constructor:(@account, @password) ->
         @parseVersion()
         @logger = new Log 'info'
+        @events = new EventEmitter
 
     # Public: The version of QQ from npm
     #
@@ -22,17 +22,46 @@ class QQ
         pkg = require Path.join __dirname, '..', 'package.json'
         @version = pkg.version
 
+    # Public: A wrapper around the EventEmitter API to make usage
+    # semanticly better.
+    #
+    # event    - The event name.
+    # listener - A Function that is called with the event parameter
+    #            when event happens.
+    #
+    # Returns nothing.
+    on: (event, args...) ->
+        @events.on event, args...
+
+    # Public: A wrapper around the EventEmitter API to make usage
+    # semanticly better.
+    #
+    # event   - The event name.
+    # args...  - Arguments emitted by the event
+    #
+    # Returns nothing.
+    emit: (event, args...) ->
+        @events.emit event, args...
+
     run:->
-        auth = new Auth(@account, @password)
-        auth.captcha (data)->
-            @logger.info 'cap cb', data
+        login = new Login(@account, @password)
+        login
+            .on 'captcha', (data)=>
+                @logger.info 'cap cb', data
+                @emit 'captcha', data
 
-        auth.success (session)->
-            @logger.info 'suc cb', session
+            .on 'success', (cookie)=>
+                @logger.info 'login success', cookie
+                service = new Service(cookie)
+                service.run()
 
-        auth.error (msg)->
-            @logger.info 'err cb', msg
+                @emit 'login'
 
-        auth.run()
+            .on 'error', (msg)=>
+                @logger.info 'login error', msg
+                @emit 'error', msg
+
+        login.run()
+
 
 module.exports = QQ

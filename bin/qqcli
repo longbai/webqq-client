@@ -32,6 +32,16 @@ if Options.version
     console.log qq.version
     process.exit 0
 
-qq = QQ.load()
+qq = QQ.load('qq', 'pwd')
+qq.on 'captcha', (data)->
+
+qq.on 'login', ->
+    #destroy captcha
+
+qq.on 'quit', ->
+    console.log('qq quit')
+
+qq.on 'error', (err)->
+    console.log err
 
 qq.run()

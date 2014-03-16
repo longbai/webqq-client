@@ -1,8 +1,4 @@
 QQ = require './src/qq'
 
-# module.exports = {
-#   QQ
-# }
-
-module.exports.load = ->
-  new QQ('QQ', '123', 'pwd')
+module.exports.load = (account, pwd)->
+  new QQ(account, pwd)
