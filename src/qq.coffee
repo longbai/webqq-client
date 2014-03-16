@@ -52,7 +52,7 @@ class QQ
 
             .on 'success', (cookie)=>
                 @logger.info 'login success', cookie
-                service = new Service(cookie)
+                service = new Service(@account, cookie)
                 service.run()
 
                 @emit 'login'

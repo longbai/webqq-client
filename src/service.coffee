@@ -1,19 +1,23 @@
 Fs             = require 'fs'
 Log            = require 'log'
 Path           = require 'path'
-HttpClient     = require 'scoped-http-client'
+HttpClient     = require './httpclient'
 {EventEmitter} = require 'events'
 QueryString  = require 'querystring'
 
 Hash = require './hash.js'
 
 genClientId = ->
-    97500000 + parseInt(Math.random() * 99999)
+    [t1, t2] = process.hrtime()
+    t2 = '' + ((t2/1000)%1000000)
+    t1 = Math.round(90*Math.random()) + 10
+    t1 = '' + t1
+    return t1.concat(t2)
 
 class Service
     #
     # Returns nothing.
-    constructor:(@cookie, @authInfo) ->
+    constructor:(@account, @cookie, @authInfo) ->
         @events = new EventEmitter
         if @authInfo is undefined
             @authInfo={}
@@ -44,7 +48,24 @@ class Service
 
     onRecieve:(cb) ->
 
-    buddyList:(cb)->
+    friendInfo:(cb) =>
+        params =
+            tuin: @account
+            verifysession:@authInfo.verifysession
+            vfwebqq:@authInfo.vfwebqq
+            t:new Date().getTime()
+
+        cookie2 = HttpClient.filterCookieByDomain(@cookie, 's.web2.qq.com')
+        cookie3 = HttpClient.joinCookie(cookie2)
+        client = HttpClient.create('http://s.web2.qq.com')
+            .path('api/get_friend_info2')
+            .query(params)
+            .header('Cookie', cookie3)
+            .get()((err, resp, body) =>
+                cb body
+        )
+
+    buddyList:(cb) =>
         rValue =
             h: 'hello'
             hash: Hash(@authInfo.uin, @authInfo.ptwebqq)
@@ -52,13 +73,15 @@ class Service
         params =
             r: JSON.stringify(rValue)
 
+        cookie2 = HttpClient.filterCookieByDomain(@cookie, 's.web2.qq.com')
+        cookie3 = HttpClient.joinCookie(cookie2)
+        data = QueryString.stringify(params)
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_user_friends2')
-            .query(params)
-            .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
-            .header('Cookie', @cookie)
-            .get()((err, resp, body) =>
-                @cookie = resp.headers['set-cookie']
+            .header('Cookie', cookie3)
+            .header('Referer', 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3')
+            .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+            .post(data)((err, resp, body) =>
                 console.log body
                 cb body
         )
@@ -71,11 +94,9 @@ class Service
 
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_group_name_list_mask2')
-            .query(params)
-            .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
             .header('Cookie', @cookie)
-            .get()((err, resp, body) =>
-                @cookie = resp.headers['set-cookie']
+            .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+            .post(QueryString.stringify(params))((err, resp, body) =>
                 console.log body
                 cb body
         )
@@ -89,19 +110,22 @@ class Service
 
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_group_info_ext2')
-            .query(params)
-            .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
             .header('Cookie', @cookie)
-            .get()((err, resp, body) =>
-                @cookie = resp.headers['set-cookie']
+            .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+            .post(QueryString.stringify(params))((err, resp, body) =>
                 console.log body
                 cb body
         )
-    parseAuthInfo: ->
+    parseAuthInfo: =>
         @authInfo.clientid = genClientId()
         @authInfo.ptwebqq   = @cookie.filter( (item)->item.match /ptwebqq/ )
                            .pop()
                            .replace /ptwebqq\=(.*?);.*/ , '$1'
+        [verifysession] = @cookie.filter( (item)->item.match /verifysession/ )
+        verifysession = verifysession || ''
+        verifysession = verifysession.replace /verifysession\=(.*?);.*/ , '$1'
+
+        @authInfo.verifysession = verifysession || ''
         console.log @authInfo
 
     online: ->
@@ -119,9 +143,7 @@ class Service
 
         client = HttpClient.create('http://d.web2.qq.com')
             .path('channel/login2')
-            .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
             .header('Cookie', @cookie)
-            .header('Referer', 'http://d.web2.qq.com/proxy.html?v=20110331002&callback=1&id=3')
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body)=>
                 console.log err
@@ -149,7 +171,13 @@ class Service
 
     run: ->
         @on 'online', =>
+            @friendInfo((data)->
+                console.log data
+            )
             @buddyList((data)->
+                console.log data
+            )
+            @groupList((data)->
                 console.log data
             )
 

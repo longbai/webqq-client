@@ -2,7 +2,7 @@ Fs             = require 'fs'
 Log            = require 'log'
 Path           = require 'path'
 Util           = require 'util'
-HttpClient     = require 'scoped-http-client'
+HttpClient     = require './httpclient'
 {EventEmitter} = require 'events'
 
 Crypto = require 'crypto'
@@ -66,7 +66,6 @@ captchaCheck = (account, login_sig, callback)->
         .path('check')
         .query(params)
         .header('Cookie', "chkuin=#{account}")
-        .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
         .get()((err, resp, body) ->
             if err isnt null
                 callback({error:err})
@@ -121,7 +120,6 @@ login = (account, password, accountHex, code, cookie, loginSig, callback) ->
     client = HttpClient.create('https://ssl.ptlogin2.qq.com')
         .path('login')
         .query(params)
-        .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
         .header('Cookie', cookie)
         .get()((err, resp, body) ->
             if err isnt null
@@ -138,7 +136,6 @@ login = (account, password, accountHex, code, cookie, loginSig, callback) ->
 
 getCookie = (url, cookie, callback)->
     client = HttpClient.create(url)
-        .header('User-Agent','Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0')
         .header('Cookie', cookie)
         .get()((err, resp, body) ->
             if err isnt null
@@ -163,9 +160,9 @@ class Login
                 if loginRet.errorCode is '0'
                     getCookie(loginRet.url, @cookie, (cookie) =>
                         if cookie.cookie != undefined
-                            console.log cookie.cookie
-                            @cookie = @cookie.concat cookie.cookie
-                            console.log @cookie
+                            cookieOk = HttpClient.filterCookie(cookie.cookie)
+                            @cookie = HttpClient.updateCookie(@cookie, cookieOk)
+                            @cookie = HttpClient.filterCookie(@cookie)
                             @emit 'success', @cookie
                         else
                             @emit 'error', 'get cookie fail'

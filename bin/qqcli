@@ -32,7 +32,7 @@ if Options.version
     console.log qq.version
     process.exit 0
 
-qq = QQ.load('qq', 'pwd')
+qq = QQ.load('123', 'pwd')
 qq.on 'captcha', (data)->
 
 qq.on 'login', ->
