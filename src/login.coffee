@@ -3,6 +3,7 @@ Log            = require 'log'
 Path           = require 'path'
 Util           = require 'util'
 HttpClient     = require './httpclient'
+Cookie         = require './cookie'
 {EventEmitter} = require 'events'
 
 Crypto = require 'crypto'
@@ -152,9 +153,9 @@ class Login
                 if loginRet.errorCode is '0'
                     getCookie(loginRet.url, @cookie, (cookie) =>
                         if cookie.cookie != undefined
-                            cookieOk = HttpClient.filterCookie(cookie.cookie)
-                            @cookie = HttpClient.updateCookie(@cookie, cookieOk)
-                            @cookie = HttpClient.filterCookie(@cookie)
+                            cookieOk = Cookie.filterCookie(cookie.cookie)
+                            @cookie = Cookie.updateCookie(@cookie, cookieOk)
+                            @cookie = Cookie.filterCookie(@cookie)
                             @emit 'success', @cookie
                         else
                             @emit 'error', 'get cookie fail'
