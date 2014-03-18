@@ -12,13 +12,32 @@ QQLib = require './qqlib.js'
 class Service
     #
     # Returns nothing.
-    constructor:(@account, @cookie, @authInfo) ->
+    constructor:(@account, @_cookie, @authInfo) ->
         @events = new EventEmitter
         @stoped = false
         @messageId = QQLib.genMessageId()
+        @groups = []
+        @dgroups = []
+        @friends = []
         if @authInfo is undefined
             @authInfo={}
             @parseAuthInfo()
+
+    cookie:->
+        cookie2 = Cookie.filterCookieByDomain(@_cookie, 'web2.qq.com')
+        return Cookie.joinCookie(cookie2)
+
+    parseAuthInfo: =>
+        @authInfo.clientid = QQLib.genClientId()
+        @authInfo.ptwebqq   = @_cookie.filter( (item)->item.match /ptwebqq/ )
+                           .pop()
+                           .replace /ptwebqq\=(.*?);.*/ , '$1'
+        [verifysession] = @_cookie.filter( (item)->item.match /verifysession/ )
+        verifysession = verifysession || ''
+        verifysession = verifysession.replace /verifysession\=(.*?);.*/ , '$1'
+
+        @authInfo.verifysession = verifysession || ''
+
 
     # Public: A wrapper around the EventEmitter API to make usage
     # semanticly better.
@@ -52,12 +71,10 @@ class Service
             vfwebqq:@authInfo.vfwebqq
             t:new Date().getTime()
 
-        cookie2 = Cookie.filterCookieByDomain(@cookie, 's.web2.qq.com')
-        cookie3 = Cookie.joinCookie(cookie2)
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_friend_info2')
             .query(params)
-            .header('Cookie', cookie3)
+            .header('Cookie', @cookie())
             .get()((err, resp, body) =>
                 cb body
         )
@@ -76,12 +93,10 @@ class Service
         params =
             r: JSON.stringify(rValue)
 
-        cookie2 = Cookie.filterCookieByDomain(@cookie, 's.web2.qq.com')
-        cookie3 = Cookie.joinCookie(cookie2)
         data = QueryString.stringify(params)
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_user_friends2')
-            .header('Cookie', cookie3)
+            .header('Cookie', @cookie())
             .header('Referer', 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3')
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(data)((err, resp, body) =>
@@ -96,7 +111,7 @@ class Service
 
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_group_name_list_mask2')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
                 cb body
@@ -111,7 +126,7 @@ class Service
 
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_group_info_ext2')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
                 cb body
@@ -126,7 +141,7 @@ class Service
 
         client = HttpClient.create('http://s.web2.qq.com')
             .path('api/get_discus_list')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
                 cb body
@@ -142,20 +157,29 @@ class Service
 
         client = HttpClient.create('http://d.web2.qq.com')
             .path('channel/get_discu_info')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
                 cb body
         )
-    accountToUin:(account) ->
+    getUserUin:(user) ->
         for x in @friends
-            if x.account is account
+            if user.name && x.name is user.name
+                return x.uin
+            if user.id && x.id is user.id
                 return x.uin
 
-    groupToUin:(groupId) ->
+    getGroupUin:(group) ->
         for x in @groups
-            if x.id is groupId
-                return x.guin
+            if group.name && x.name is group.name
+                return x.uin
+            if group.id && x.id is group.id
+                return x.uin
+
+    getDiscussionGroupUin:(dgroup) ->
+        for x in @dgroups
+            if dgroup.name && x.name is dgroup.name
+                return x.uin
 
     sendToFriend: (msg, callback) ->
         console.log 'send to friend'
@@ -165,7 +189,7 @@ class Service
         uin = msg.to.uin
         if not uin
             console.log 'uin miss'
-            uin = accountToUin msg.to.id
+            uin = getUserUin msg.to
             if not uin
                 console.log 'no uin'
                 return
@@ -187,7 +211,7 @@ class Service
         console.log params
         client = HttpClient.create('http://d.web2.qq.com')
             .path('channel/send_buddy_msg2')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) ->
                 console.log 'send friend message', err, body
@@ -197,9 +221,9 @@ class Service
     sendToGroup: (msg, callback) ->
         if not msg.to
             return
-        guin = msg.to.guin
+        guin = msg.to.uin
         if not guin
-            guin = groupToUin msg.to.gid
+            guin = getGroupUin msg.to
             if not guin
                 return
         rValue =
@@ -215,22 +239,39 @@ class Service
 
         client = HttpClient.create('http://d.web2.qq.com')
             .path('channel/send_qun_msg2')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) ->
                 console.log 'send group message', err, body
             )
 
-    parseAuthInfo: =>
-        @authInfo.clientid = QQLib.genClientId()
-        @authInfo.ptwebqq   = @cookie.filter( (item)->item.match /ptwebqq/ )
-                           .pop()
-                           .replace /ptwebqq\=(.*?);.*/ , '$1'
-        [verifysession] = @cookie.filter( (item)->item.match /verifysession/ )
-        verifysession = verifysession || ''
-        verifysession = verifysession.replace /verifysession\=(.*?);.*/ , '$1'
+    sendToDiscussionGroup: (msg, callback) ->
+        if not msg.to
+            return
+        did = msg.to.uin
+        if not did
+            did = getDiscussionGroupUin msg.to
+            if not did
+                return
 
-        @authInfo.verifysession = verifysession || ''
+        rValue =
+            did: did
+            msg_id: @messageId++
+            clientid: @authInfo.clientid
+            psessionid: @authInfo.psessionid
+            content: msg.message()
+        params =
+            r: JSON.stringify rValue
+            clientid: @authInfo.clientid
+            psessionid: @authInfo.psessionid
+
+        client = HttpClient.create('http://d.web2.qq.com')
+            .path('channel/send_discu_msg2')
+            .header('Cookie', @cookie())
+            .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+            .post(QueryString.stringify(params))((err, resp, body) ->
+                console.log 'send discussion group message', err, body
+            )
 
     online: ->
         rValue =
@@ -247,7 +288,7 @@ class Service
 
         client = HttpClient.create('http://d.web2.qq.com')
             .path('channel/login2')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body)=>
                 console.log err
@@ -285,12 +326,30 @@ class Service
 
         client = HttpClient.create('http://d.web2.qq.com')
             .path('channel/poll2')
-            .header('Cookie', @cookie)
+            .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
                 console.log 'poll return', body
                 @emit 'poll', err, body
+                #todo retcode 102 redo online
         )
+
+    logout: ->
+        @stop()
+        params =
+            clientid: @authInfo.clientid
+            psessionid: @authInfo.psessionid
+            ids:''
+            t: new Date().getTime()
+
+        client = HttpClient.create('http://d.web2.qq.com')
+            .path('channel/logout2')
+            .header('Cookie', @cookie())
+            .post(QueryString.stringify(params))((err, resp, body) =>
+                console.log 'poll return', body
+                @emit 'poll', err, body
+        )
+
     stop: ->
         @emit 'stop'
 
@@ -324,12 +383,17 @@ class Service
             #     console.log 'groupMember',data
             # )
 
-
-        @on 'ready', =>
-            console.log 'ready to send'
-            msg = Message.create('hi', {uin:1})
+            msg = Message.create('hi', {uin:})
             @sendToFriend(msg, (data)->
                 console.log 'send msg', data
+            )
+            msg = Message.create('hiqun', {uin:})
+            @sendToGroup(msg, (data)->
+                console.log 'send group msg', data
+            )
+            msg = Message.create('hiqun', {uin:})
+            @sendToDiscussionGroup(msg, (data)->
+                console.log 'send discus group msg', data
             )
 
         @online()
