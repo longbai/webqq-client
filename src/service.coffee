@@ -15,7 +15,6 @@ class Service
     constructor:(@account, @cookie, @authInfo) ->
         @events = new EventEmitter
         @stoped = false
-        @ready = false
         @messageId = QQLib.genMessageId()
         if @authInfo is undefined
             @authInfo={}
@@ -301,13 +300,9 @@ class Service
             @loop.clearInterval()
 
         @on 'poll', (err, body)=>
-            if not @ready
-                @ready = true
-                @emit 'ready'
             # console.log err, body
 
         @on 'online', =>
-            @poll()
             @loop = setInterval(=>
                 if @stoped is false
                     @poll()
