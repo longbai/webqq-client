@@ -7,21 +7,7 @@ Cookie         = require './cookie'
 QueryString  = require 'querystring'
 Message = require './message'
 
-Hash = require './hash.js'
-
-genClientId = ->
-    t1 = Math.round(90*Math.random() + 10)
-    [_, t2] = process.hrtime()
-    t2 = Math.round(t2/1000)
-    return "#{t1}".concat("#{t2%1000000}")
-
-genMessageId = ->
-    [_, t] = process.hrtime()
-    t = Math.round(t/1000)
-    t = (t - t%1000)/1000
-    t = Math.round(t)
-    t = t%10000 * 10000
-    return
+QQLib = require './qqlib.js'
 
 class Service
     #
@@ -29,7 +15,8 @@ class Service
     constructor:(@account, @cookie, @authInfo) ->
         @events = new EventEmitter
         @stoped = false
-        @messageId = genClientId()
+        @ready = false
+        @messageId = QQLib.genMessageId()
         if @authInfo is undefined
             @authInfo={}
             @parseAuthInfo()
@@ -85,7 +72,7 @@ class Service
     friendList:(cb) ->
         rValue =
             h: 'hello'
-            hash: Hash(@authInfo.uin, @authInfo.ptwebqq)
+            hash: QQLib.hash(@authInfo.uin, @authInfo.ptwebqq)
             vfwebqq: @authInfo.vfwebqq
         params =
             r: JSON.stringify(rValue)
@@ -236,7 +223,7 @@ class Service
             )
 
     parseAuthInfo: =>
-        @authInfo.clientid = genClientId()
+        @authInfo.clientid = QQLib.genClientId()
         @authInfo.ptwebqq   = @cookie.filter( (item)->item.match /ptwebqq/ )
                            .pop()
                            .replace /ptwebqq\=(.*?);.*/ , '$1'
@@ -285,7 +272,7 @@ class Service
 
     # discussionGroupMember: ->
 
-    poll:(callback)->
+    poll:()->
         console.log "polling..."
         rValue =
             clientid: @authInfo.clientid
@@ -314,14 +301,18 @@ class Service
             @loop.clearInterval()
 
         @on 'poll', (err, body)=>
-            console.log err, body
+            if not @ready
+                @ready = true
+                @emit 'ready'
+            # console.log err, body
 
         @on 'online', =>
-            # @loop = setInterval(=>
-            #     if @stoped is false
-            #         @poll()
-            # , 1000*60
-            # )
+            @poll()
+            @loop = setInterval(=>
+                if @stoped is false
+                    @poll()
+            , 1000*60
+            )
             @friendInfo((data)->
                 console.log 'friendInfo', data
             )
@@ -337,6 +328,10 @@ class Service
             # @groupMember('', (data)->
             #     console.log 'groupMember',data
             # )
+
+
+        @on 'ready', =>
+            console.log 'ready to send'
             msg = Message.create('hi', {uin:1})
             @sendToFriend(msg, (data)->
                 console.log 'send msg', data

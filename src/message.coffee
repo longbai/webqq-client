@@ -22,7 +22,7 @@ class Message
     constructor:(@text, @to, @from={}) ->
 
     message: ->
-        JSON.stringify ["#{@text}" , ["font", {name:"宋体", size:"10", style:[0,0,0], color:"000000" }] ]
+        JSON.stringify ["#{@text}" , ["font", {"name":"宋体", "size":"10", "style":[0,0,0], "color":"000000" }] ]
 
 module.exports.create = (msg, to) ->
     new Message msg, to

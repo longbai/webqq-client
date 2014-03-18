@@ -15,6 +15,9 @@ class QQ
         @logger = new Log 'info'
         @events = new EventEmitter
 
+        process.on 'uncaughtException', (err)=>
+          @emit 'error', err
+
     # Public: The version of QQ from npm
     #
     # Returns a String of the version number.
