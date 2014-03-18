@@ -4,9 +4,9 @@ Path           = require 'path'
 HttpClient     = require 'scoped-http-client'
 {EventEmitter} = require 'events'
 
-# to user {id:qq, uin:qqinternal}
-# to group {gid:group id, guin:qqinternal}
-# to discussion group {did:discussion group id}
+# to user {id:qq, uin:qqinternal, nick:nickname, markname:markname, type:user}
+# to group {id:group id, uin:qqinternal, name:name, type:group}
+# to discussion group {id:discussion group id, name:name, type:dgroup}
 
 # from user {id:qq, uin:qqinternal, name:name, nick:nick, markname:markname}, id maybe be absent
 # from group {gid:groupId, guin:qqinternal, member:user}, gid may be absent
