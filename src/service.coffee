@@ -100,7 +100,7 @@ class Service
             .header('Referer', 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3')
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(data)((err, resp, body) =>
-                cb body
+                cb err, body
         )
 
     groupList: (cb)->
@@ -215,7 +215,7 @@ class Service
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) ->
                 console.log 'send friend message', err, body
-                callback body
+                callback && callback body
             )
 
     sendToGroup: (msg, callback) ->
@@ -273,7 +273,7 @@ class Service
                 console.log 'send discussion group message', err, body
             )
 
-    online: ->
+    online: (callback)->
         rValue =
             status: 'online',
             ptwebqq: @authInfo.ptwebqq,
@@ -300,19 +300,18 @@ class Service
                     @emit 'error', 'online fail'
 
                 ret = JSON.parse(body)
-                if ret.retcode == 0
+                if ret.retcode is 0
                     console.log 'success'
                     @authInfo.psessionid = ret.result.psessionid
                     @authInfo.uin = ret.result.uin
                     @authInfo.vfwebqq = ret.result.vfwebqq
-                    @emit 'online'
-                else
-                    @emit 'error', 'online failed'
+
+                callback && callback(err, ret)
             )
 
     # discussionGroupMember: ->
 
-    poll:()->
+    poll: ->
         console.log "polling..."
         rValue =
             clientid: @authInfo.clientid
@@ -331,8 +330,17 @@ class Service
             .post(QueryString.stringify(params))((err, resp, body) =>
                 console.log 'poll return', body
                 @emit 'poll', err, body
-                #todo retcode 102 redo online
+                ret = JSON.parse body
+                if ret.retcode is 116
+                    console.log 'need refrsh ptweb'
+
+                if ret.retcode is 121
+                    @online()
+                    return
         )
+
+    handleMessage: ->
+
 
     logout: ->
         @stop()
@@ -346,8 +354,7 @@ class Service
             .path('channel/logout2')
             .header('Cookie', @cookie())
             .post(QueryString.stringify(params))((err, resp, body) =>
-                console.log 'poll return', body
-                @emit 'poll', err, body
+                console.log 'logout return', body
         )
 
     stop: ->
@@ -370,7 +377,12 @@ class Service
             @friendInfo((data)->
                 console.log 'friendInfo', data
             )
-            @friendList((data)->
+            @friendList((err, data)->
+                if err is not null
+                    @emit 'error', err
+                    return
+                ret = JSON.parse(data)
+
                 console.log 'friendList', data
             )
             @groupList((data)->
@@ -383,19 +395,22 @@ class Service
             #     console.log 'groupMember',data
             # )
 
-            msg = Message.create('hi', {uin:})
-            @sendToFriend(msg, (data)->
-                console.log 'send msg', data
-            )
-            msg = Message.create('hiqun', {uin:})
-            @sendToGroup(msg, (data)->
-                console.log 'send group msg', data
-            )
-            msg = Message.create('hiqun', {uin:})
-            @sendToDiscussionGroup(msg, (data)->
-                console.log 'send discus group msg', data
-            )
+            # msg = Message.create('hi', {uin:})
+            # @sendToFriend(msg, (data)->
+            #     console.log 'send msg', data
+            # )
+            # msg = Message.create('hiqun', {uin:})
+            # @sendToGroup(msg, (data)->
+            #     console.log 'send group msg', data
+            # )
+            # msg = Message.create('hiqun', {uin:})
+            # @sendToDiscussionGroup(msg, (data)->
+            #     console.log 'send discus group msg', data
+            # )
 
-        @online()
+        @online((err, ret)=>
+            if err is null and ret.retcode is 0
+                @emit 'online'
+        )
 
 module.exports = Service
