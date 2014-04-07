@@ -330,16 +330,11 @@ class Service
             .post(QueryString.stringify(params))((err, resp, body) =>
                 console.log 'poll return', body
                 @emit 'poll', err, body
-                ret = JSON.parse body
-                if ret.retcode is 116
-                    console.log 'need refrsh ptweb'
-
-                if ret.retcode is 121
-                    @online()
-                    return
         )
 
-    handleMessage: ->
+    handleMessage: (data)->
+        if data is undefined
+            return
 
 
     logout: ->
@@ -366,7 +361,17 @@ class Service
             @loop.clearInterval()
 
         @on 'poll', (err, body)=>
-            # console.log err, body
+            ret = JSON.parse body
+            if ret.retcode is 0
+                @handleMessage(ret.result)
+
+            if ret.retcode is 116
+                console.log 'need refrsh ptweb'
+                return
+
+            if ret.retcode is 121
+                @online()
+                return
 
         @on 'online', =>
             @loop = setInterval(=>
@@ -374,11 +379,12 @@ class Service
                     @poll()
             , 1000*60
             )
+
             @friendInfo((data)->
                 console.log 'friendInfo', data
             )
             @friendList((err, data)->
-                if err is not null
+                if err isnt null
                     @emit 'error', err
                     return
                 ret = JSON.parse(data)

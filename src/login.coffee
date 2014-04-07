@@ -27,7 +27,6 @@ getLoginSig = (callback)->
         t:   20131202001
         target:  'self'
 
-
     client = HttpClient.create('https://ui.ptlogin2.qq.com')
         .path('cgi-bin/login')
         .query(params)
@@ -166,7 +165,6 @@ class Login
                     @emit 'captcha', 'captcha'
                     return
                 @emit 'error', loginRet.msg
-
 
         getLoginSig((data) =>
             if data.error isnt undefined

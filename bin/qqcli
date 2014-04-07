@@ -1,6 +1,7 @@
 #!/usr/bin/env coffee
 
-Readline = require 'readline'
+Read = require 'read'
+{EventEmitter} = require 'events'
 
 QQ    = require '..'
 
@@ -15,66 +16,85 @@ Switches = [
 Options = {}
 
 class Shell
-    startQQ: (id, pwd)->
-        @qq = QQ.load(id, pwd)
-        qq.on 'captcha', (data)->
+    constructor:() ->
+        @events = new EventEmitter
+        @count = 0
+    # Public: A wrapper around the EventEmitter API to make usage
+    # semanticly better.
+    #
+    # event    - The event name.
+    # listener - A Function that is called with the event parameter
+    #            when event happens.
+    #
+    # Returns nothing.
+    on: (event, args...) ->
+        @events.on event, args...
 
-        qq.on 'login', ->
+    # Public: A wrapper around the EventEmitter API to make usage
+    # semanticly better.
+    #
+    # event   - The event name.
+    # args...  - Arguments emitted by the event
+    #
+    # Returns nothing.
+    emit: (event, args...) ->
+        @events.emit event, args...
+
+    startQQ: (id, pwd) ->
+        @qq = QQ.load(id, pwd)
+
+        @qq.on 'captcha', (data)->
+
+        @qq.on 'login', ->
             #destroy captcha
 
-        qq.on 'quit', ->
+        @qq.on 'quit', ->
             console.log('qq quit')
 
-        qq.on 'error', (err)->
-            console.log err
-        qq.on 'ready', (err)->
+        @qq.on 'error', (err)=>
+            console.log @count, err
+            @count = @count + 1
+        @qq.on 'ready', (err)=>
             console.log 'ready'
             @status = 'ready'
-            @repl.setPrompt ":#{@qq}>"
+            @repl.setPrompt ":#{id}>"
             @repl.promt()
-        qq.run()
+        @qq.run()
 
     parseCmd: (cmd)->
         switch cmd
-            when 'info' then console.log 'info'
+            when 'info'
+                console.log 'info'
 
-            when 'touin' then console.log 'touin'
-            when 'toid' then console.log 'toid'
+            when 'touin'
+                console.log 'touin'
+            when 'toid'
+                console.log 'toid'
 
-            when 'toname' then console.log 'toname'
+            when 'toname'
+                console.log 'toname'
 
-            when 'toguin' then console.log 'toguin'
+            when 'toguin'
+                console.log 'toguin'
 
-            when 'friends' then console.log 'friends'; @qq.friends()
+            when 'friends'
+                console.log 'friends'; @qq.friends()
 
     run: ->
         self = @
-        stdin = process.openStdin()
-        stdout = process.stdout
 
         process.on 'uncaughtException', (err) =>
-            @robot.logger.error err.stack
+            console.log err.stack
 
-        @repl = Readline.createInterface stdin, stdout, null
+        @on 'password', =>
+            Read {prompt: "Password: ", silent: true}, (er, pwd)=>
+                @startQQ(@qqId, pwd)
+                console.log 'waiting...'
 
-        @repl.on 'close', =>
-            stdin.destroy()
-            process.exit 0
+        Read {prompt: "QQ: "}, (er, qq)=>
+            @qqId = qq
+            @emit 'password'
 
-        @repl.on 'line', (buffer) =>
-            @repl.close() if buffer.toLowerCase() is 'exit'
-            input = buffer.toString()
-            switch @status
-                when 'waitQQ' then @qqId = input; @repl.setPrompt ":>please input qq password:"
-                when 'waitPwd' then pwd = input; @repl.setPrompt ":>waiting ..."; @startQQ(@qqId, pwd)
-                when 'ready' then console.log 'ready'
-            @repl.prompt()
-
-        self.emit 'connected'
-
-        @repl.setPrompt ">please input qq number:"
-        @status = 'waitQQ'
-        @repl.prompt()
 
 unless process.platform is "win32"
     process.on 'SIGTERM', ->
@@ -96,3 +116,5 @@ if Options.version
     console.log QQ.version()
     process.exit 0
 
+shell = new Shell()
+shell.run()
