@@ -52,15 +52,15 @@ HttpClient     = require 'scoped-http-client'
 #         "value": {
 #             "msg_id": 6987,
 #             "from_uin": 3055869334,
-#             "to_uin": 21818145,
+#             "to_uin": 218,
 #             "msg_id2": 146412,
 #             "msg_type": 43,
 #             "reply_ip": 176886378,
-#             "group_code": 3790034309,
-#             "send_uin": 1819692923,
+#             "group_code": 37,
+#             "send_uin": 1819,
 #             "seq": 6,
 #             "time": 1396857738,
-#             "info_seq": 366052419,
+#             "info_seq": 366,
 #             "content": [
 #                 [
 #                     "font",
@@ -81,17 +81,63 @@ HttpClient     = require 'scoped-http-client'
 #     }
 # ]
 
+# dissgus group
+# [
+#     {
+#         "poll_type": "discu_message",
+#         "value": {
+#             "msg_id": 7003,
+#             "from_uin": 10000,
+#             "to_uin": 218,
+#             "msg_id2": 541681,
+#             "msg_type": 42,
+#             "reply_ip": 176489029,
+#             "did": 3,
+#             "send_uin": 1,
+#             "seq": 3,
+#             "time": 1396858685,
+#             "info_seq": 1,
+#             "content": [
+#                 [
+#                     "font",
+#                     {
+#                         "size": 9,
+#                         "color": "000000",
+#                         "style": [
+#                             0,
+#                             0,
+#                             0
+#                         ],
+#                         "name": "Microsoft YaHei"
+#                     }
+#                 ],
+#                 "QQ"
+#             ]
+#         }
+#     }
+# ]
 
 contentText = (content)->
     for data in content
         if !Array.isArray(data)
             return data
 
-module.exports.parse = (body)->
-    from = {}
-    from.uin = body.from_uin
-    text = contentText(body.content)
-    return new Message(text, null, from)
+module.exports.parse = (msg)->
+    body = msg.value
+    if msg.poll_type is 'message'
+        from = {type:'user', uin:body.from_uin}
+        text = contentText(body.content)
+        return new Message(text, null, from)
+
+    if msg.poll_type is 'group_message'
+        from = {type:'group', uin:body.from_uin, talker:body.send_uin}
+        text = contentText(body.content)
+        return new Message(text, null, from)
+
+    if msg.poll_type is 'discu_message'
+        from = {type:'dgroup', uin:body.did, talker:body.send_uin}
+        text = contentText(body.content)
+        return new Message(text, null, from)
 
 class Message
     #
