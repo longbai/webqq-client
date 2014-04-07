@@ -6,6 +6,7 @@ Cookie         = require './cookie'
 {EventEmitter} = require 'events'
 QueryString  = require 'querystring'
 Message = require './message'
+Info = require './info'
 
 QQLib = require './qqlib.js'
 
@@ -114,7 +115,7 @@ class Service
             .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
-                cb body
+                cb err, body
         )
 
     groupMember: (number, cb)->
@@ -144,7 +145,7 @@ class Service
             .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
-                cb body
+                cb err, body
         )
 
     discussionGroupInfo: (did, cb)->
@@ -385,19 +386,35 @@ class Service
             @friendInfo((data)->
                 console.log 'friendInfo', data
             )
-            @friendList((err, data)->
+            @friendList((err, data)=>
                 if err isnt null
                     @emit 'error', err
                     return
                 ret = JSON.parse(data)
-
-                console.log 'friendList', data
+                if ret.retcode isnt 0
+                    return
+                @friends = Info.parseFriends(ret.result)
+                console.log 'friendList', @friends
             )
-            @groupList((data)->
-                console.log 'groupList', data
+            @groupList((err, data)=>
+                if err isnt null
+                    @emit 'error', err
+                    return
+                ret = JSON.parse(data)
+                if ret.retcode isnt 0
+                    return
+                @groups = Info.parseGroups(ret.result)
+                console.log 'groupList', @groups
             )
-            @discussionGroupList((data)->
-                console.log 'discussionGroupList', data
+            @discussionGroupList((err, data)=>
+                if err isnt null
+                    @emit 'error', err
+                    return
+                ret = JSON.parse(data)
+                if ret.retcode isnt 0
+                    return
+                @dgroups = Info.parseDisscussGroups(ret.result)
+                console.log 'discussionGroupList', @dgroups
             )
             # @groupMember('', (data)->
             #     console.log 'groupMember',data
