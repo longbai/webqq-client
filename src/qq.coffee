@@ -43,6 +43,21 @@ class QQ
     emit: (event, args...) ->
         @events.emit event, args...
 
+    friends:->
+        return @service?.friends
+
+    groups:->
+        return @service?.groups
+
+    dgroups:->
+        return @service?.dgroups
+
+    info:->
+        return @service?.info
+
+    send:(msg, cb)->
+        @service?.send(msg, cb)
+
     run:->
         login = new Login(@account, @password)
         login
@@ -52,10 +67,13 @@ class QQ
 
             .on 'success', (cookie)=>
                 @logger.info 'login success'
-                service = new Service(@account, cookie)
-                service.run()
-
+                @service = new Service(@account, cookie)
+                @service.run()
                 @emit 'login'
+                @service.on 'ready', =>
+                    @emit 'ready'
+                @service.on 'message', (msg)=>
+                    @emit 'message', msg
 
             .on 'error', (msg)=>
                 @logger.info 'login error', msg
