@@ -335,7 +335,10 @@ class Service
     handleMessage: (data)->
         if data is undefined
             return
-
+        for message in data
+            if message.poll_type is 'message'
+               m = Message.parse(message.value)
+               console.log m
 
     logout: ->
         @stop()

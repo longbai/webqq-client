@@ -13,8 +13,85 @@ HttpClient     = require 'scoped-http-client'
 # from discussion group {did:discussion group}
 
 # parse one item
-exports.parse = (body)->
-    # text =
+# buddy message
+# [
+#     {
+#         "poll_type": "message",
+#         "value": {
+#             "msg_id": 23915,
+#             "from_uin": 1,
+#             "to_uin": 2,
+#             "msg_id2": 564718,
+#             "msg_type": 9,
+#             "reply_ip": 176884842,
+#             "time": 1396855005,
+#             "content": [
+#                 [
+#                     "font",
+#                     {
+#                         "size": 9,
+#                         "color": "000000",
+#                         "style": [
+#                             0,
+#                             0,
+#                             0
+#                         ],
+#                         "name": "Microsoft YaHei"
+#                     }
+#                 ],
+#                 "hi "
+#             ]
+#         }
+#     }
+# ]
+
+# group message
+# [
+#     {
+#         "poll_type": "group_message",
+#         "value": {
+#             "msg_id": 6987,
+#             "from_uin": 3055869334,
+#             "to_uin": 21818145,
+#             "msg_id2": 146412,
+#             "msg_type": 43,
+#             "reply_ip": 176886378,
+#             "group_code": 3790034309,
+#             "send_uin": 1819692923,
+#             "seq": 6,
+#             "time": 1396857738,
+#             "info_seq": 366052419,
+#             "content": [
+#                 [
+#                     "font",
+#                     {
+#                         "size": 9,
+#                         "color": "000000",
+#                         "style": [
+#                             0,
+#                             0,
+#                             0
+#                         ],
+#                         "name": "Microsoft YaHei"
+#                     }
+#                 ],
+#                 "群消息 "
+#             ]
+#         }
+#     }
+# ]
+
+
+contentText = (content)->
+    for data in content
+        if !Array.isArray(data)
+            return data
+
+module.exports.parse = (body)->
+    from = {}
+    from.uin = body.from_uin
+    text = contentText(body.content)
+    return new Message(text, null, from)
 
 class Message
     #
