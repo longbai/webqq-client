@@ -6,6 +6,18 @@
 # from group {gid:groupId, guin:qqinternal, member:user}, gid may be absent
 # from discussion group {did:discussion group}
 
+class Message
+    #
+    # Returns nothing.
+    constructor:(@text, @to, @from={}) ->
+
+    message: ->
+        JSON.stringify ["#{@text}" , ["font", {"name":"宋体", "size":"10", "style":[0,0,0], "color":"000000" }] ]
+
+module.exports.create = (msg, to) ->
+    new Message msg, to
+
+
 # parse one item
 # buddy message
 # [
@@ -132,14 +144,3 @@ module.exports.parse = (msg)->
         from = {type:'dgroup', uin:body.did, talker:body.send_uin}
         text = contentText(body.content)
         return new Message(text, null, from)
-
-class Message
-    #
-    # Returns nothing.
-    constructor:(@text, @to, @from={}) ->
-
-    message: ->
-        JSON.stringify ["#{@text}" , ["font", {"name":"宋体", "size":"10", "style":[0,0,0], "color":"000000" }] ]
-
-module.exports.create = (msg, to) ->
-    new Message msg, to
