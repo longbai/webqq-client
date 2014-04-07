@@ -62,8 +62,16 @@ class Service
         @events.emit event, args...
 
     send:(msg, cb) ->
-
-    onRecieve:(cb) ->
+        to = msg.to
+        if to?.type is 'user'
+            @sendToFriend(msg, cb)
+            return
+        if to?.type is 'group'
+            @sendToGroup(msg, cb)
+            return
+        if to?.type is 'dgroup'
+            @sendToDiscussionGroup(msg, cb)
+            return
 
     friendInfo:(cb) =>
         params =
@@ -77,7 +85,7 @@ class Service
             .query(params)
             .header('Cookie', @cookie())
             .get()((err, resp, body) =>
-                cb body
+                cb err, body
         )
 
     # updateFriends:() ->
@@ -183,7 +191,6 @@ class Service
                 return x.uin
 
     sendToFriend: (msg, callback) ->
-        console.log 'send to friend'
         if not msg.to
             console.log 'no to'
             return
@@ -203,7 +210,6 @@ class Service
             psessionid: @authInfo.psessionid
             content: msg.message()
 
-        console.log rValue
         params =
             r: JSON.stringify rValue
             clientid: @authInfo.clientid
@@ -215,8 +221,7 @@ class Service
             .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) ->
-                console.log 'send friend message', err, body
-                callback && callback body
+                callback && callback err, body
             )
 
     sendToGroup: (msg, callback) ->
@@ -243,7 +248,7 @@ class Service
             .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) ->
-                console.log 'send group message', err, body
+                callback && callback err, body
             )
 
     sendToDiscussionGroup: (msg, callback) ->
@@ -271,7 +276,7 @@ class Service
             .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) ->
-                console.log 'send discussion group message', err, body
+                callback && callback err, body
             )
 
     online: (callback)->
@@ -302,7 +307,6 @@ class Service
 
                 ret = JSON.parse(body)
                 if ret.retcode is 0
-                    console.log 'success'
                     @authInfo.psessionid = ret.result.psessionid
                     @authInfo.uin = ret.result.uin
                     @authInfo.vfwebqq = ret.result.vfwebqq
@@ -313,7 +317,6 @@ class Service
     # discussionGroupMember: ->
 
     poll: ->
-        console.log "polling..."
         rValue =
             clientid: @authInfo.clientid
             psessionid: @authInfo.psessionid
@@ -329,7 +332,7 @@ class Service
             .header('Cookie', @cookie())
             .header('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
             .post(QueryString.stringify(params))((err, resp, body) =>
-                console.log 'poll return', body
+                # console.log 'poll return', body
                 @emit 'poll', err, body
         )
 
@@ -339,6 +342,7 @@ class Service
         for message in data
             m = Message.parse(message)
             console.log m
+        @emit 'message', m
 
     logout: ->
         @stop()
@@ -383,8 +387,16 @@ class Service
             , 1000*60
             )
 
-            @friendInfo((data)->
-                console.log 'friendInfo', data
+            @emit 'ready'
+
+            @friendInfo((err, data)=>
+                if err isnt null
+                    @emit 'error', err
+                    return
+                ret = JSON.parse(data)
+                if ret.retcode isnt 0
+                    return
+                @info = ret.result
             )
             @friendList((err, data)=>
                 if err isnt null
@@ -394,7 +406,6 @@ class Service
                 if ret.retcode isnt 0
                     return
                 @friends = Info.parseFriends(ret.result)
-                console.log 'friendList', @friends
             )
             @groupList((err, data)=>
                 if err isnt null
@@ -404,7 +415,6 @@ class Service
                 if ret.retcode isnt 0
                     return
                 @groups = Info.parseGroups(ret.result)
-                console.log 'groupList', @groups
             )
             @discussionGroupList((err, data)=>
                 if err isnt null
@@ -414,7 +424,6 @@ class Service
                 if ret.retcode isnt 0
                     return
                 @dgroups = Info.parseDisscussGroups(ret.result)
-                console.log 'discussionGroupList', @dgroups
             )
             # @groupMember('', (data)->
             #     console.log 'groupMember',data
