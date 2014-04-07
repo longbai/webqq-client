@@ -144,7 +144,6 @@ class Login
         @cookie = []
         @events = new EventEmitter
     run:->
-        @logger.info 'hi'
         @on '_code', (code)=>
             login @account, @password, @accountHex, code, @cookie, @loginSig, (loginRet) =>
                 console.log 'login result ', loginRet.errorCode
