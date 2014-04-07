@@ -1,9 +1,3 @@
-Fs             = require 'fs'
-Log            = require 'log'
-Path           = require 'path'
-HttpClient     = require 'scoped-http-client'
-{EventEmitter} = require 'events'
-
 # to user {id:qq, uin:qqinternal, nick:nickname, markname:markname, type:user}
 # to group {id:group id, uin:qqinternal, name:name, type:group}
 # to discussion group {id:discussion group id, name:name, type:dgroup}
