@@ -54,31 +54,53 @@ class Shell
         @qq.on 'error', (err)=>
             console.log @count, err
             @count = @count + 1
-        @qq.on 'ready', (err)=>
-            console.log 'ready'
-            @status = 'ready'
-            @repl.setPrompt ":#{id}>"
-            @repl.promt()
+
+        @qq.on 'message', (msg)->
+            console.log msg
+
+        @qq.on 'ready', =>
+            @emit 'cmd'
+
         @qq.run()
 
-    parseCmd: (cmd)->
-        switch cmd
+    parseCmd: (cmdLine)->
+        switch cmdLine
+            when 'exit'
+                process.exit 0
+            when 'help'
+                console.log 'helps'
             when 'info'
-                console.log 'info'
-
-            when 'touin'
-                console.log 'touin'
-            when 'toid'
-                console.log 'toid'
-
-            when 'toname'
-                console.log 'toname'
-
-            when 'toguin'
-                console.log 'toguin'
-
+                console.log @qq.info()
             when 'friends'
-                console.log 'friends'; @qq.friends()
+                console.log @qq.friends()
+            when 'groups'
+                console.log @qq.groups()
+            when 'dgroups'
+                console.log @qq.dgroups()
+            else
+                try
+                    cmd = JSON.parse(cmdLine)
+                catch err
+                    console.log err
+                    return
+                if cmd.txt is undefined
+                    return
+
+                if cmd.touin isnt undefined
+                    to = {type:'user', uin:cmd.touin}
+                    msg = QQ.createMessage(cmd.txt, to)
+                    @qq.send(msg, (err, data)->
+                        console.log 'send result', err, data
+                    )
+                    return
+
+                if cmd.toguin isnt undefined
+                    to = {type:'group', uin:cmd.toguin}
+                    msg = QQ.createMessage(cmd.txt, to)
+                    @qq.send(msg, (err)->
+                        console.log 'send result', err
+                    )
+                    return
 
     run: ->
         self = @
@@ -87,16 +109,20 @@ class Shell
             console.log err.stack
 
         @on 'password', =>
-            Read {prompt: "Password: ", silent: true}, (er, pwd)=>
+            Read {prompt: 'Password: ', silent: true}, (er, pwd)=>
                 @startQQ(@qqId, pwd)
                 console.log 'waiting...'
 
-        Read {prompt: "QQ: "}, (er, qq)=>
+        @on 'cmd', =>
+            Read {prompt: "#{@qqId}: "}, (er, cmd)=>
+                @parseCmd(cmd)
+                @emit 'cmd'
+
+        Read {prompt: 'QQ: '}, (er, qq)=>
             @qqId = qq
             @emit 'password'
 
-
-unless process.platform is "win32"
+unless process.platform is 'win32'
     process.on 'SIGTERM', ->
         process.exit 0
 
