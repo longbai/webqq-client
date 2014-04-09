@@ -88,12 +88,6 @@ class Service
                 cb err, body
         )
 
-    # updateFriends:() ->
-    #     result = JSON.parse(data)
-    #     if result.retcode != 0
-    #         console.log 'invalid data', result.retcode
-    #         return
-
     friendList:(cb) ->
         rValue =
             h: 'hello'
