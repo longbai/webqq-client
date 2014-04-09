@@ -58,8 +58,11 @@ class QQ
     send:(msg, cb)->
         @service?.send(msg, cb)
 
+    captcha:(data, cb)->
+        @login?.captcha(msg, cb)
+
     run:->
-        login = new Login(@account, @password)
+        @login = new Login(@account, @password)
         login
             .on 'captcha', (data)=>
                 @logger.info 'captcha callback'
